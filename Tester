@@ -1,0 +1,58 @@
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local root = character:WaitForChild("HumanoidRootPart")
+local userInput = game:GetService("UserInputService")
+local runService = game:GetService("RunService")
+
+-- Hoverboard setup
+local hoverboard = Instance.new("Part")
+hoverboard.Size = Vector3.new(6, 0.5, 3)
+hoverboard.Position = root.Position - Vector3.new(0, 3, 0)
+hoverboard.Anchored = false
+hoverboard.CanCollide = false
+hoverboard.BrickColor = BrickColor.new("Bright blue")
+hoverboard.Material = Enum.Material.Neon
+hoverboard.TopSurface, hoverboard.BottomSurface = Enum.SurfaceType.Smooth, Enum.SurfaceType.Smooth
+hoverboard.Parent = workspace
+
+-- Details
+for i = 0, 3 do
+    local detail = Instance.new("CylinderMesh", hoverboard)
+    detail.Scale = Vector3.new(0.2, 0.1, 0.2)
+    detail.Offset = Vector3.new((i % 2 == 0 and 2 or -2), 0.25, (i < 2 and 1 or -1))
+end
+
+local light = Instance.new("PointLight", hoverboard)
+light.Color = Color3.fromRGB(0, 255, 255)
+light.Brightness, light.Range = 5, 8
+
+Instance.new("Decal", hoverboard).Texture = "rbxassetid://12345678" -- Replace with your texture ID
+
+local bodyPos = Instance.new("BodyPosition", hoverboard)
+bodyPos.MaxForce = Vector3.new(0, 8000, 0)
+bodyPos.D, bodyPos.P = 1000, 5000
+
+local bodyGyro = Instance.new("BodyGyro", hoverboard)
+bodyGyro.MaxTorque, bodyGyro.P = Vector3.new(400000, 400000, 400000), 3000
+
+Instance.new("WeldConstraint", hoverboard).Part0 = hoverboard
+hoverboard.WeldConstraint.Part1 = root
+
+local speed, flySpeed, flying, hoverHeight = 50, 70, false, 3
+
+userInput.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.Space then flying = not flying end
+    if input.KeyCode == Enum.KeyCode.E then hoverHeight += 1 end
+    if input.KeyCode == Enum.KeyCode.Q then hoverHeight = math.max(1, hoverHeight - 1) end
+end)
+
+runService.Stepped:Connect(function()
+    local direction = Vector3.zero
+    if userInput:IsKeyDown(Enum.KeyCode.W) then direction += root.CFrame.LookVector end
+    if userInput:IsKeyDown(Enum.KeyCode.S) then direction -= root.CFrame.LookVector end
+    if userInput:IsKeyDown(Enum.KeyCode.A) then direction -= root.CFrame.RightVector end
+    if userInput:IsKeyDown(Enum.KeyCode.D) then direction += root.CFrame.RightVector end
+
+    hoverboard.Velocity = direction * (flying and flySpeed or speed)
+    bodyPos.Position = root.Position + Vector3.new(0, flying and hoverHeight + 7 or hoverHeight, 0)
+end)
